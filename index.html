@@ -1,0 +1,445 @@
+<html>
+  <head>
+    <title>TastenTip - Wie viele Tasten findest du?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playwrite+DE+SAS:wght@100..400&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <header>
+      <h1>TastenTip</h1>
+    </header>
+
+    <!--
+    * Wähle die Schrift!
+    * Wie lange willst du?
+    * Wähle den Modus
+      * Einfach (nur Buchstaben)
+      * Mittel (mit Zahlen)
+      * Schwer (mit Sonderzeichen)
+      * Schwer (mit Groß und Kleinbuchstaben)
+      * Sehr Schwer (alle Zeichen)
+    * Start
+    * Buchstabe wird gezeigt
+    * Du musst den tippen
+    * Angezeigt wird, wie viele gut und Schlecht sind
+    -->
+    <div class="screen" data-screen="start">
+
+      <h2>Wähle die Schrift</h2>
+
+      <div class="auswahl">
+        <button class="menu-knopf btn" onclick="javascript:setFont('monospace'); show('configure-1')" style="font-family: monospace">Druckschrift</button>
+
+        <button class="menu-knopf btn" onclick="javascript:setFont('handwriting'); show('configure-1')" style="font-family: 'Playwrite DE SAS'">Schreibschrift</button>
+
+        <button class="menu-knopf btn" onclick="javascript:setFont('serif'); show('configure-1')">Normale Schrift</button>
+      </div>
+    </div>
+
+    <div class="screen" data-screen="configure-1">
+
+      <h2>Wähle den Modus</h2>
+
+      <div class="auswahl">
+        <button class="menu-knopf btn" onclick="javascript:setMode('simple'); show('configure-2')">
+          Einfach <span class="annotation">(nur Großbuchstaben)</span></button>
+
+        <button class="menu-knopf btn" onclick="javascript:setMode('mid'); show('configure-2')">Mittel <span class="annotation">(mit Zahlen)</span></button>
+
+        <button class="menu-knopf btn" onclick="javascript:setMode('hard'); show('configure-2')">Schwer <span class="annotation">(Groß- und Kleinbuchstaben)</span></button>
+
+        <button class="menu-knopf btn" onclick="javascript:setMode('hard-special'); show('configure-2')">Schwer <span class="annotation">(mit Sonderzeichen)</span></button>
+
+        <button class="menu-knopf btn" onclick="javascript:setMode('extreme'); show('configure-2')">Sehr schwer <span class="annotation">(alle Zeichen)</span></button>
+      </div>
+
+    </div>
+
+    <div class="screen" data-screen="configure-2">
+
+      <h2>Wähle die Zeit</h2>
+
+      <div class="auswahl">
+        <button class="menu-knopf btn" onclick="javascript:setTime(60); show('ready')">1:00min</button>
+        <button class="menu-knopf btn" onclick="javascript:setTime(120); show('ready')">2:00min</button>
+        <button class="menu-knopf btn" onclick="javascript:setTime(180); show('ready')">3:00min</button>
+      </div>
+    </div>
+
+    <div class="screen" data-screen="ready">
+
+      <h2>Dein Spiel</h2>
+
+      <div class="auswahl">
+
+        <div class="menu-knopf box" data-id="chosen-font"></div>
+
+        <div class="menu-knopf box" data-id="chosen-mode"></div>
+
+        <div class="menu-knopf box" data-id="chosen-time"></div>
+      </div>
+
+      <div class="footer">
+        <button class="btn btn-primary" onclick="javascript:run()">Start</button>
+
+        <a href="#" onclick="javascript:show('start'); return false">Ändern</a>
+      </div>
+    </div>
+
+    <div class="screen" data-screen="game">
+
+      <h2 id="zeit" class="zeit"></h2>
+
+      <div class="buchstabe">
+
+        <div id="buchstabe" class="menu-knopf box" data-id="chosen-font"></div>
+
+        <p class="buchstabe-caption">Tippe den Buchstaben mit deiner Tastatur.</p>
+      </div>
+
+      <div class="results">
+        <div class="right">
+          <img class="status-img" src="./right.svg" />
+          <span id="right">0</span>
+        </div>
+
+        <div class="wrong">
+          <img class="status-img" src="./wrong.svg" />
+          <span id="wrong">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" data-screen="result">
+
+      <div class="ergebnis-box">
+        <h2>Herzlichen Glückwunsch!</h2>
+
+        <p>Du hast im Modus <span data-id="chosen-font"></span>, <span data-id="chosen-mode"></span>, <span data-id="chosen-time"></span></p>
+
+        <p class="final-points"><span data-id="final-points"></span> Punkte</p>
+
+        <p>erreicht und dabei folgende Tasten getippt:</p>
+
+        <div class="results">
+          <div>
+            <img class="status-img" src="./right.svg" />
+            <span data-id="final-right" class="right"></span>
+          </div>
+
+          <div>
+            <img class="status-img" src="./wrong.svg" />
+            <span data-id="final-wrong" class="wrong"></span>
+          </div>
+        </div>
+
+        <div class="footer">
+          <button class="btn btn-primary" onclick="javascript:run()">
+            <img class="btn-icon" src="repeat.svg" />
+            Wiederholen
+          </button>
+
+          <a href="#" onclick="javascript:show('start'); return false">Neues Spiel</a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let {
+        game,
+        result
+      } = parseURL();
+
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ';
+      const sz = 'ß';
+      const zahlen = '1234567890';
+      const sonderzeichen = `!"§$%&/()=?*#-_,;.:<>|[]{}\~+'`;
+
+      const fontOptions = {
+        'monospace': {
+          label: () => html`Druckschrift`,
+          font: 'monospace'
+        },
+        'handwriting': {
+          label: () => html`Schreibschrift`,
+          font: 'Playwrite DE SAS'
+        },
+        'serif': {
+          label: () => html`Normale Schrift`,
+          font: 'serif'
+        }
+      };
+
+      const modeOptions = {
+        'simple': {
+          label: () => html`Einfach <span class="annotation">(nur Großbuchstaben)</span>`,
+          alphabet
+        },
+        'mid': {
+          label: () => html`Mittel <span class="annotation">(mit Zahlen)</span>`,
+          alphabet: alphabet + zahlen
+        },
+        'hard': {
+          label: () => html`Schwer <span class="annotation">(Groß- und Kleinbuchstaben)</span>`,
+          alphabet: alphabet + alphabet.toLowerCase() + sz,
+          caseSensitive: true
+        },
+        'hard-special': {
+          label: () => html`Schwer <span class="annotation">(mit Sonderzeichen)</span>`,
+          alphabet: alphabet + sz + sonderzeichen
+        },
+        'extreme': {
+          label: () => html`Sehr schwer <span class="annotation">(alle Zeichen)</span>`,
+          alphabet: alphabet + alphabet.toLowerCase() + sz + zahlen + sonderzeichen,
+          caseSensitive: true
+        }
+      };
+
+      const buchstabeEl = document.querySelector('#buchstabe');
+      const rightEl = document.querySelector('#right');
+      const wrongEl = document.querySelector('#wrong');
+      const zeitEl = document.querySelector('#zeit');
+
+      buchstabeEl.addEventListener('animationend', () => {
+        buchstabeEl.classList.toggle('ok', false);
+        buchstabeEl.classList.toggle('not-ok', false);
+      });
+
+      let gesuchterBuchstabe = null;
+      let restlicheZeit = 0;
+
+      const init = {};
+
+      function updateEl(selector, fn) {
+        for (const el of document.querySelectorAll(selector)) {
+          fn(el);
+        }
+      }
+
+      function show(bildschirm) {
+        const screenEls = document.querySelectorAll('.screen');
+
+        console.log('show', bildschirm);
+
+        for (const el of screenEls) {
+          el.classList.toggle('shown', el.dataset.screen === bildschirm);
+        }
+
+        if (bildschirm in init) {
+          init[bildschirm]();
+        }
+      }
+
+      function configureGame(property, value) {
+        game[property] = value;
+
+        persistGame(game);
+      }
+
+      function setFont(font) {
+        configureGame('font', font);
+      }
+
+      function setTime(time) {
+        configureGame('time', time);
+      }
+
+      function setMode(mode) {
+        configureGame('mode', mode);
+      }
+
+      function parseURL() {
+        const url = new URL(window.location.href);
+
+        const game = {
+          mode: url.searchParams.get('mode') || null,
+          time: url.searchParams.get('time') || null,
+          font: url.searchParams.get('font') || null
+        };
+
+        const result = url.searchParams.has('right') && url.searchParams.has('wrong') ? {
+          right: parseInt(url.searchParams.get('right'), 10) || 0,
+          wrong: parseInt(url.searchParams.get('wrong'), 10) || 0
+        } : null;
+
+        return {
+          game,
+          result
+        };
+      }
+
+      function persistGame(game, result) {
+        const url = new URL(window.location.href);
+
+        for (const key of [ 'mode', 'time', 'font' ]) {
+
+          if (game[key]) {
+            url.searchParams.set(key, game[key]);
+          } else {
+            url.searchParams.delete(key);
+          }
+        }
+
+        for (const key of [ 'right', 'wrong' ]) {
+          if (result && result[key] !== undefined) {
+            url.searchParams.set(key, result[key]);
+          } else {
+            url.searchParams.delete(key);
+          }
+        }
+
+        window.history.pushState({}, document.title, url.search);
+      }
+
+      init['ready'] = init['result'] = function initReady() {
+
+        const {
+          mode,
+          time,
+          font
+        } = game;
+
+        updateEl('[data-id=chosen-font]', el => {
+          el.style.fontFamily = fontOptions[font].font;
+
+          el.innerHTML = fontOptions[font].label();
+        });
+
+        updateEl('[data-id=chosen-mode]', el => {
+          el.innerHTML = modeOptions[mode].label();
+        });
+
+        updateEl('[data-id=chosen-time]', el => {
+          el.innerHTML = html`${formatTime(time)}min`;
+        });
+
+        document.body.removeEventListener('keypress', handleKey);
+
+        updateEl('[data-id=final-right]', el => {
+          el.innerHTML = result?.right || 0;
+        });
+
+        updateEl('[data-id=final-wrong]', el => {
+          el.innerHTML = result?.wrong || 0;
+        });
+
+        updateEl('[data-id=final-points]', el => {
+          el.innerHTML = Math.max(0, (result?.right || 0) - (result?.wrong || 0));
+        });
+      };
+
+      function neuerBuchstabe() {
+
+        const { alphabet } = modeOptions[game.mode];
+
+        const buchstabe = alphabet.charAt(
+          Math.trunc(
+            Math.random() * alphabet.length
+          )
+        );
+
+        gesuchterBuchstabe = buchstabe;
+
+        buchstabeEl.textContent = buchstabe;
+        rightEl.textContent = result.right;
+        wrongEl.textContent = result.wrong;
+      }
+
+      function tick() {
+        restlicheZeit--;
+
+        if (restlicheZeit == 0) {
+          return end();
+        }
+
+        zeitEl.textContent = `${formatTime(restlicheZeit)}min`;
+
+        setTimeout(tick, 1000);
+      }
+
+      function formatTime(time) {
+        return `${Math.trunc(time/60)}:${time%60 < 10 ? '0' : ''}${time%60}`;
+      }
+
+      function handleKey(event) {
+
+        const { key } = event;
+
+        const { caseSensitive } = modeOptions[game.mode];
+
+        console.log('Received key %o, expected %o', key, gesuchterBuchstabe);
+
+        const right = key === gesuchterBuchstabe || (
+          !caseSensitive && gesuchterBuchstabe.toLowerCase() === key
+        );
+
+        if (right) {
+          result.right++;
+        } else {
+          result.wrong++;
+        }
+
+        buchstabeEl.classList.toggle('ok', right);
+        buchstabeEl.classList.toggle('not-ok', !right);
+
+        neuerBuchstabe();
+      }
+
+      function run() {
+        persistGame(game);
+
+        result = {
+          right: 0,
+          wrong: 0
+        };
+
+        restlicheZeit = game.time;
+
+        show('game');
+      }
+
+      init['game'] = function initGame() {
+        document.body.addEventListener('keypress', handleKey);
+
+        tick();
+        neuerBuchstabe();
+      };
+
+      function end() {
+        persistGame(game, result);
+
+        show('result');
+      }
+
+      if (result) {
+        end();
+      } else {
+        if (game.mode && game.font && game.time) {
+          show('ready');
+        } else {
+          show('start');
+        }
+      }
+
+      function html(str, ...args) {
+
+        if (Array.isArray(str)) {
+          str = str.slice();
+
+          for (const i in args) {
+            str.splice(i + 1, 0, args[i]);
+          }
+
+          str = str.join('');
+        }
+
+        const r = new DOMParser().parseFromString(str, 'text/html');
+
+        return r.body.innerHTML;
+      }
+    </script>
+  </body>
+</html>
